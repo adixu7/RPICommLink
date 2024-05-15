@@ -178,6 +178,37 @@ class RPICommLink:
         self.data_event.clear()
         return return_data
 
+    def recv_msg(self, func):
+        def wrapper():
+            threading.Thread(target=self._thread_recv_msg, args=(func, )).start()
+        return wrapper()
+
+    def _thread_recv_msg(self, func):
+        while True:
+            sock_list = []
+            if self._device_state == 'client':
+                sock_list.append(self._send_server_socket)
+            else:
+                sock_list = self.socket_list
+                self.wait()
+            for i in sock_list:
+                if i not in self.threading_now:
+                    recv_thread = threading.Thread(target=self._recv_threading, args=(i,), daemon=True)
+                    self.threading_now.append(i)
+                    recv_thread.start()
+            if len(self.threading_now) == 0:
+                try:
+                    recv_thread = threading.Thread(target=self._recv_threading, args=(sock_list[0],),
+                                                   daemon=True)
+                    recv_thread.start()
+                except Exception:
+                    pass
+            self.data_event.wait()  # 等待数据事件被设置
+            return_data = self.return_data
+            self.return_data = None
+            self.data_event.clear()
+            func(return_data)
+
     def _recv_threading(self, sock):
         """处理从客户端收到的数据的线程
 
@@ -375,7 +406,7 @@ class RPICommLink:
         import struct
         import numpy
         import cv2
-
+        data = None
         sock_list = []
         if self._device_state == 'client':
             sock_list.append(self._send_server_socket)
@@ -424,4 +455,3 @@ def get_host_ip():
 
 if __name__ == "__main__":
     pass
-
