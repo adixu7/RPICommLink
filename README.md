@@ -138,7 +138,7 @@ while True:
 #### 客户端
 ```python
 import RPICommLink
-client = RPICommLink.RPICommLink(rpi_port=333)
+client = RPICommLink.RPICommLink()
 client.connect()
 
 
