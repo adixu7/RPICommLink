@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='RPICommLink',
-    version='1.1.1',
+    version='1.1.2',
     author='adixu',
     author_email='adixu7@gmail.com',
     description='A library for communication on Raspberry Pi',
@@ -19,7 +19,8 @@ setup(
                      "\n\n\n\n\n\n1.0.6 -修复了潜在bug"
                      "\n\n\n\n\n\n1.0.7 -轻量化"
                      "\n\n\n\n\n\n1.1   -增加了传输摄像头帧的函数，需要自行下载opencv-python库。注意：该版本为测试版，将会有许多未发现的报错，建议在在服务器端发送摄像头帧而不是客户端。"
-                     "\n\n\n\n\n\n1.1.1 -修复了几个bug。注意：该版本为测试版，将会有许多未发现的报错，建议在在服务器端发送摄像头帧而不是客户端。",
+                     "\n\n\n\n\n\n1.1.1 -修复了几个bug。注意：该版本为测试版，将会有许多未发现的报错，建议在在服务器端发送摄像头帧而不是客户端。"
+                     "\n\n\n\n\n\n1.1.2 -现在服务端与客户端都可以进行发送或接收了",
     packages=['RPICommLink'],
     include_package_data=True,
     install_requires=[],
