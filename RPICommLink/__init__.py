@@ -153,24 +153,30 @@ class RPICommLink:
 
         :return:返回接收到的数据
         """
-        if self.wait():
-            for i in self.socket_list:
-                if i not in self.threading_now:
-                    recv_thread = threading.Thread(target=self._recv_threading, args=(i,), daemon=True)
-                    self.threading_now.append(i)
-                    recv_thread.start()
-            if len(self.threading_now) == 0:
-                try:
-                    recv_thread = threading.Thread(target=self._recv_threading, args=(self.socket_list[0],),
-                                                   daemon=True)
-                    recv_thread.start()
-                except Exception:
-                    pass
-            self.data_event.wait()  # 等待数据事件被设置
-            return_data = self.return_data
-            self.return_data = None
-            self.data_event.clear()
-            return return_data
+        sock_list = []
+        if self._device_state == 'client':
+            sock_list.append(self._send_server_socket)
+        else:
+            sock_list = self.socket_list
+            self.wait()
+
+        for i in sock_list:
+            if i not in self.threading_now:
+                recv_thread = threading.Thread(target=self._recv_threading, args=(i,), daemon=True)
+                self.threading_now.append(i)
+                recv_thread.start()
+        if len(self.threading_now) == 0:
+            try:
+                recv_thread = threading.Thread(target=self._recv_threading, args=(sock_list[0],),
+                                               daemon=True)
+                recv_thread.start()
+            except Exception:
+                pass
+        self.data_event.wait()  # 等待数据事件被设置
+        return_data = self.return_data
+        self.return_data = None
+        self.data_event.clear()
+        return return_data
 
     def _recv_threading(self, sock):
         """处理从客户端收到的数据的线程
@@ -301,9 +307,17 @@ class RPICommLink:
 
         :param msg:发送的信息
         """
-        for sock in self._send_server_socket:
+        sock_list = []
+        if self._device_state == 'server':
+            sock_list = self.socket_list
+        elif self._device_state is None:
+            print(f'\033[91mError:未开启或连接服务器 \033[0m')
+        else:
+            sock_list.append(self._send_server_socket)
+
+        for sock in sock_list:
             try:
-                sock.send(msg.encode('utf-8'))
+                sock[0].send(msg.encode('utf-8'))
             except Exception:
                 print('\033[91mError:一个服务器发送失败！请确认是否有连接服务器 \033[0m')
                 self._send_server_socket.remove(sock)
@@ -410,3 +424,4 @@ def get_host_ip():
 
 if __name__ == "__main__":
     pass
+
