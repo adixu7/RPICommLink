@@ -154,6 +154,62 @@ while True:
 运行结果：  
 ![0fba9b30aae0d0ccd7833c162cba5b6](https://github.com/adixu7/RPICommLink/assets/169100555/b0b37fbb-60d2-4444-a962-24856316c8d2)
 
+****
+## 1.1.4
+1.1.4可以选择传输时的摄像头，如果你想在一台设备上同时发送两个摄像头的影像，甚至更多，可以按照以下方法开启不同的端口
+#### 服务器
+```python
+import RPICommLink
+Camera_one = RPICommLink.RPICommLink(rpi_port=11111)
+Camera_two = RPICommLink.RPICommLink(rpi_port=22222)
+Camera_two.open()
+Camera_one.open()
+Camera_two.auto_frame()
+Camera_one.auto_frame(cap=1)
+
+@Camera_one.recv_msg
+def one_msg(msg):  # 这里接收第一个摄像头客户端发来的数据
+    print(msg)
+
+@Camera_two.recv_msg
+def two_msg(msg):  # 这里接收第二个摄像头客户端发来的数据
+    print(msg)
+```
+#### 客户端
+```python
+import RPICommLink
+import cv2
+
+Camera_one = RPICommLink.RPICommLink(rpi_port=11111)
+Camera_one.connect()
+Camera_two = RPICommLink.RPICommLink(rpi_port=22222)
+Camera_two.connect()
+
+# 使用装饰器可以使两个摄像头相互不影响
+@Camera_one.recv_frame_test
+def Camera_one_frame(recv_frame):
+    global frame_one
+    frame_one = recv_frame
+
+
+@Camera_two.recv_frame_test
+def jin_frame(frame):
+    global frame_two
+    frame_two = frame
+
+
+while True:
+    try:
+        cv2.imshow('0', frame_one)
+        cv2.imshow('1', frame_two)
+        if cv2.waitKey(1) == ord('q'):
+            break
+    except Exception as e:
+        print(e)
+        pass
+
+```
+当然，客户端也可以接收不同设备发来的不同图片数据，只需要实例化并在open()与connect()中设置不同的设备名称，用以上的方法即可！
 
 历代版本更新：
 
@@ -176,5 +232,7 @@ while True:
  	1.1.2 -现在服务端与客户端都可以进行发送或接收了。
 
   	1.1.3 -添加了装饰器的用法，使代码更加简介。
+
+   	1.1.4 -给图像接收添加了装饰器的用法；auto_frame现在可以选择不同的相机了
 
  对代码有任何问题，可以通过邮箱adixu7@gmail.com联系我
