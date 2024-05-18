@@ -356,20 +356,20 @@ class RPICommLink:
                     print('\033[91mError:无服务器连接 \033[0m')
                     sys.exit()
 
-    def auto_frame(self):
+    def auto_frame(self, cap: int = 0):
         if self._device_state == 'server':
-            threading.Thread(target=self._auto_frame, daemon=True).start()
+            threading.Thread(target=self._auto_frame, args=(cap, ), daemon=True).start()
         elif self._device_state is None:
             print(f'\033[91mError:未开启或连接服务器 \033[0m')
         else:
-            threading.Thread(target=self._auto_frame, daemon=True).start()
+            threading.Thread(target=self._auto_frame, args=(cap, ), daemon=True).start()
             print(f'\033[93mWarning:客户端发送系统冲突！这会导致无法发送正常数据以及其它报错！'
                   f'这不是一个正常用法，强烈建议使用send_frame自行进行发送！ \033[0m')
 
-    def _auto_frame(self):
+    def _auto_frame(self, capnumber):
         import cv2
 
-        cap = cv2.VideoCapture(0)
+        cap = cv2.VideoCapture(capnumber)
         while True:
             ret, _frame = cap.read()
             self.send_frame(_frame)
@@ -430,6 +430,41 @@ class RPICommLink:
         image = cv2.imdecode(data, cv2.IMREAD_UNCHANGED)
         self.state = False
         return image
+
+    def recv_frame_test(self, func):
+        def wrapper():
+            threading.Thread(target=self._thread_recv_frame, args=(func, ), daemon=True).start()
+        return wrapper()
+
+    def _thread_recv_frame(self, func):
+        import struct
+        import numpy
+        import cv2
+        while True:
+            data = None
+            sock_list = []
+            if self._device_state == 'client':
+                sock_list.append(self._send_server_socket)
+            elif self._device_state is None:
+                print(f'\033[91mError:未开启或连接服务器 \033[0m')
+            else:
+                self.state = True
+                sock_list = self.socket_list
+                self.wait()
+            for sock in sock_list:
+                data = sock[0].recv(8)
+
+            length, width, height = struct.unpack('ihh', data)
+            img_data = b''  # 存放最终的图片数据
+            while length:
+                for sock in sock_list:
+                    temp_size = sock[0].recv(length)
+                    length -= len(temp_size)
+                    img_data += temp_size
+            data = numpy.frombuffer(img_data, dtype='uint8')
+            image = cv2.imdecode(data, cv2.IMREAD_UNCHANGED)
+            self.state = False
+            func(image)
 
 
 def get_host_ip():
